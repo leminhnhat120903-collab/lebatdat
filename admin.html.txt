@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý Email ACCMY</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<style>
+body {
+  font-family: sans-serif;
+  background: #f0f2f5;
+  text-align: center;
+  padding: 20px;
+}
+textarea, input, button {
+  width: 90%;
+  max-width: 350px;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+}
+#copyButton { background: #28a745; }
+#deleteListButton { background: #dc3545; }
+
+#toast {
+  position: fixed;
+  top: -100px;
+  left: 0;
+  width: 100%;
+  padding: 15px;
+  background: black;
+  color: white;
+  transition: 0.4s;
+}
+#toast.show { top: 0; }
+</style>
+</head>
+
+<body>
+
+<div id="toast"></div>
+
+<h2>📧 Quản lý ACCMY</h2>
+
+<textarea id="input" placeholder="Dán email..."></textarea>
+<button id="add">➕ Thêm</button>
+<button id="deleteListButton">🗑️ Xóa hiện tại</button>
+
+<input id="output" readonly placeholder="Email hiển thị">
+<button id="copyBtn">📋 Copy</button>
+
+<p id="count"></p>
+
+<button id="next">🔁 Email khác</button>
+<button id="copyButton">📋 Lấy & Copy</button>
+
+<script>
+// 🔥 CONFIG FIREBASE (ĐÃ FIX)
+const firebaseConfig = {
+  apiKey: "AIzaSyA2rQjpX58MJPtf-mA70C4XH9qRjnqaBXs",
+  authDomain: "lebadat-8651b.firebaseapp.com",
+  databaseURL: "https://lebadat-8651b-default-rtdb.firebaseio.com/",
+  projectId: "lebadat-8651b",
+  storageBucket: "lebadat-8651b.firebasestorage.app",
+  messagingSenderId: "384945735212",
+  appId: "1:384945735212:web:8797ba77f6d71ef42df389"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const refDB = db.ref("emails");
+
+// 🔥 DATA
+let list = [];
+
+// 🔥 LOAD REALTIME
+refDB.on("value", snap => {
+  list = snap.val() || [];
+  updateCount();
+});
+
+// 🔥 UI
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.innerText = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 3000);
+}
+
+function updateCount() {
+  document.getElementById("count").innerText = "📊 Còn: " + list.length;
+}
+
+function copy(text) {
+  navigator.clipboard.writeText(text);
+  toast("✅ Copy: " + text);
+}
+
+// ➕ ADD
+document.getElementById("add").onclick = () => {
+  let val = document.getElementById("input").value;
+  let arr = val.split(/[\s,;|]+/).filter(x => x.includes("@"));
+
+  refDB.transaction(data => {
+    data = data || [];
+    arr.forEach(e => { if (!data.includes(e)) data.push(e); });
+    return data;
+  });
+
+  document.getElementById("input").value = "";
+};
+
+// 🗑️ DELETE
+document.getElementById("deleteListButton").onclick = () => {
+  let current = document.getElementById("output").value;
+  if (!current) return;
+
+  refDB.transaction(data => data.filter(x => x !== current));
+  document.getElementById("output").value = "";
+};
+
+// 🔁 NEXT
+document.getElementById("next").onclick = () => {
+  if (list.length == 0) return;
+
+  let cur = document.getElementById("output").value;
+  let next = list[0];
+
+  if (cur) {
+    let i = list.indexOf(cur);
+    next = list[(i + 1) % list.length];
+  }
+
+  document.getElementById("output").value = next;
+  copy(next);
+};
+
+// 📋 COPY BUTTON
+document.getElementById("copyBtn").onclick = () => {
+  let val = document.getElementById("output").value;
+  if (val) copy(val);
+};
+
+// 📋 AUTO COPY
+document.getElementById("copyButton").onclick = () => {
+  if (list.length == 0) return;
+
+  let val = document.getElementById("output").value || list[0];
+  document.getElementById("output").value = val;
+  copy(val);
+};
+</script>
+
+</body>
+</html>
